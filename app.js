@@ -6,11 +6,20 @@ $(document).ready( function() {
 		var tags = $(this).find("input[name='tags']").val();
 		getUnanswered(tags);
 	});
+	$('.inspiration-getter').submit( function(event){
+		// zero out results if previous search has run
+		$('.results').html('');
+		// get the value of the tags the user submitted
+		var tags = $(this).find("input[name='answerers']").val();
+		getTopAnswered(tags);
+	});
 });
 
 // this function takes the question object returned by StackOverflow 
 // and creates new result to be appended to DOM
 var showQuestion = function(question) {
+	$('.ques').show();
+	$('.answer').hide();
 	
 	// clone our result template code
 	var result = $('.templates .question').clone();
@@ -37,6 +46,34 @@ var showQuestion = function(question) {
 							'</p>' +
  							'<p>Reputation: ' + question.owner.reputation + '</p>'
 	);
+
+	return result;
+};
+
+var showQuestion1 = function(question) {
+	$('.ques').hide();
+	$('.answer').show();
+
+	// clone our result template code
+	var result = $('.templates .question').clone();
+	
+	// Set the question properties in result
+	var questionElem = result.find('.1question-text a');
+	questionElem.attr('href', question.user.link);
+	questionElem.text(question.user.display_name);
+
+	// set the date asked property in result
+	var asked = result.find('.1asked-date');
+	asked.text(question.user.reputation);
+
+	// set the #views for question property in result
+	var postCount = result.find('.post-count');
+	postCount.text(question.post_count);
+
+	// set the #views for question property in result
+	var userScore = result.find('.score');
+	userScore.text(question.score);
+
 
 	return result;
 };
@@ -88,5 +125,33 @@ var getUnanswered = function(tags) {
 	});
 };
 
+var getTopAnswered = function(tags) {
+	
+	// the parameters we need to pass in our request to StackOverflow's API
+	var request = {tagged: tags,
+								site: 'stackoverflow',
+								order: 'desc',
+								sort: 'creation'};
+	
+	var result = $.ajax({
+		url: "http://api.stackexchange.com/2.2/tags/html/top-answerers/all_time",
+		data: request,
+		dataType: "jsonp",
+		type: "GET",
+		})
+	.done(function(result){
+		var searchResults = showSearchResults(request.tagged, result.items.length);
 
+		$('.search-results').html(searchResults);
+
+		$.each(result.items, function(i, item) {
+			var question = showQuestion1(item);
+			$('.results').append(question);
+		});
+	})
+	.fail(function(jqXHR, error, errorThrown){
+		var errorElem = showError(error);
+		$('.search-results').append(errorElem);
+	});
+};
 
